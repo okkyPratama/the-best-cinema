@@ -1,31 +1,78 @@
 import React, { useState } from "react";
 import { DetailCard } from "./DetailCard";
+interface DetailCardProps {
+  movieId: number;
+  onClose: () => void;
+  onLoaded: () => void;
+}
 
-interface CardProps {
-    title: string;
-    releaseDate: string;
-    rating: number;
-    imageUrl: string;
-    genre: string;
-    tagline: string;
-    description: string;
-  }
-export const Card: React.FC<CardProps> = ({
-    title,
-    releaseDate,
-    rating,
-    imageUrl,
-    genre,
-    tagline,
-    description,
-}) => {
-   const [isModalOpen, setIsModalOpen] = useState(false)
+interface MovieDetail {
+  title: string;
+  poster_path: string;
+  vote_average: number;
+  genres: { name: string }[];
+  tagline: string;
+  overview: string;
+  release_date: string;
+  runtime: number;
+}
+
+export const DetailCard: React.FC<DetailCardProps> = ({ movieId, onClose, onLoaded }) => {
+  const [movieDetail, setMovieDetail] = useState<MovieDetail | null>(null);
+  const [userRating, setUserRating] = useState<number>(5);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMovieDetail = async () => {
+      const url = `https://api.themoviedb.org/3/movie/${movieId}`;
+      const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
+
+      try {
+        const response = await fetch(url, {
+          headers: {
+            accept: 'application/json',
+            Authorization: `Bearer ${API_TOKEN}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setMovieDetail(data);
+        setLoading(false);
+        onLoaded();
+      } catch (err) {
+        setError('Error fetching movie details: ' + err);
+        setLoading(false);
+        onLoaded();
+      }
+    };
+
+    fetchMovieDetail();
+  }, [movieId, onLoaded]);
+
+  const handleSubmit = () => {
+    console.log(`Submitting rating ${userRating} for ${movieDetail?.title}`);
+    onClose();
+  };
+
+  const handleOutsideClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
+    },
+    [onClose]
+  );
 
   return (
     <>
-   <div
-        className="relative w-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer"
-        onClick={() => setIsModalOpen(true)}
+      <div
+        className={`relative w-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 cursor-pointer ${isLoading ? 'opacity-50' : ''}`}
+        onClick={handleCardClick}
       >
         <img src={imageUrl} alt={title} className="w-full h-96 object-cover" />
 
@@ -38,20 +85,20 @@ export const Card: React.FC<CardProps> = ({
             <p className="text-gray-600 text-sm">{releaseDate}</p>
           </div>
         </div>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
         <DetailCard
-          title={title}
-          imageUrl={imageUrl}
-          rating={rating}
-          genre={genre}
-          tagline={tagline}
-          description={description}
-          onClose={() => setIsModalOpen(false)}
+          movieId={id}
+          onClose={handleCloseModal}
+          onLoaded={() => setIsLoading(false)}
         />
       )}
-    
     </>
   );
 };
