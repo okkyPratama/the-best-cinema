@@ -1,72 +1,33 @@
 import React, { useState } from "react";
 import { DetailCard } from "./DetailCard";
-interface DetailCardProps {
-  movieId: number;
-  onClose: () => void;
-  onLoaded: () => void;
+
+interface CardProps {
+    id: number;
+    title: string;
+    releaseDate: string;
+    rating: number;
+    imageUrl: string;
 }
 
-interface MovieDetail {
-  title: string;
-  poster_path: string;
-  vote_average: number;
-  genres: { name: string }[];
-  tagline: string;
-  overview: string;
-  release_date: string;
-  runtime: number;
-}
+export const Card: React.FC<CardProps> = ({
+    id,
+    title,
+    releaseDate,
+    rating,
+    imageUrl,
+}) => {
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
 
-export const DetailCard: React.FC<DetailCardProps> = ({ movieId, onClose, onLoaded }) => {
-  const [movieDetail, setMovieDetail] = useState<MovieDetail | null>(null);
-  const [userRating, setUserRating] = useState<number>(5);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+   const handleCardClick = () => {
+     setIsLoading(true);
+     setIsModalOpen(true);
+   };
 
-  useEffect(() => {
-    const fetchMovieDetail = async () => {
-      const url = `https://api.themoviedb.org/3/movie/${movieId}`;
-      const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
-
-      try {
-        const response = await fetch(url, {
-          headers: {
-            accept: 'application/json',
-            Authorization: `Bearer ${API_TOKEN}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-        setMovieDetail(data);
-        setLoading(false);
-        onLoaded();
-      } catch (err) {
-        setError('Error fetching movie details: ' + err);
-        setLoading(false);
-        onLoaded();
-      }
-    };
-
-    fetchMovieDetail();
-  }, [movieId, onLoaded]);
-
-  const handleSubmit = () => {
-    console.log(`Submitting rating ${userRating} for ${movieDetail?.title}`);
-    onClose();
-  };
-
-  const handleOutsideClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
+   const handleCloseModal = () => {
+     setIsModalOpen(false);
+     setIsLoading(false);
+   };
 
   return (
     <>
