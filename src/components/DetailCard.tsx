@@ -27,7 +27,6 @@ export const DetailCard: React.FC<DetailCardProps> = ({movieId, onClose, onLoade
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ratingSuccess, setRatingSuccess] = useState(false);
 
-  const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
@@ -37,7 +36,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({movieId, onClose, onLoade
         const response = await fetch(url, {
           headers: {
             accept: 'application/json',
-            Authorization: `Bearer ${API_TOKEN}`
+            Authorization: `Bearer ${apiToken}`
           }
         });
 
@@ -57,7 +56,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({movieId, onClose, onLoade
     };
 
     fetchMovieDetail();
-  }, [movieId, onLoaded, apiToken, API_TOKEN]);
+  }, [movieId, onLoaded, apiToken]);
 
   const handleSubmit = async () => {
     if (!guestSessionId) {
@@ -72,7 +71,7 @@ export const DetailCard: React.FC<DetailCardProps> = ({movieId, onClose, onLoade
         method: 'POST',
         headers: {
           'Content-Type': 'application/json;charset=utf-8',
-          'Authorization': `Bearer ${API_TOKEN}`
+          'Authorization': `Bearer ${apiToken}`
         },
         body: JSON.stringify({ value: userRating })
       });

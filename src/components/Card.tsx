@@ -1,7 +1,6 @@
 import React from "react";
 
 interface CardProps {
-  id: number;
   title: string;
   releaseDate: string;
   rating: number;

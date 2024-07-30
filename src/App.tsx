@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import "./App.css";
 import { Card } from "./components/Card";
 import { Navbar } from "./components/Navbar";
@@ -24,12 +24,8 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   
   const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
-  useEffect(() => {
-    fetchMovies();
-    createGuestSession();
-  }, []);
 
-  const createGuestSession = async () => {
+  const createGuestSession = useCallback(async () => {
     try {
       const response = await fetch('https://api.themoviedb.org/3/authentication/guest_session/new', {
         method: 'GET',
@@ -46,16 +42,15 @@ function App() {
     } catch (err) {
       console.error('Error creating guest session:', err);
     }
-  };
+  }, [API_TOKEN]);
 
-  const fetchMovies = async (query: string = "") => {
+  const fetchMovies = useCallback(async (query: string = "") => {
     if (query) {
       setSearchLoading(true);
     } else {
       setLoading(true);
     }
     
-
     if (!API_TOKEN) {
       setError('API token is not configured');
       setLoading(false);
@@ -89,8 +84,12 @@ function App() {
       setLoading(false);
       setSearchLoading(false);
     }
-  };
+  }, [API_TOKEN]);
 
+  useEffect(() => {
+    fetchMovies();
+    createGuestSession();
+  }, [fetchMovies, createGuestSession]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -125,7 +124,6 @@ function App() {
              {movies.map((movie) => (
               <Card
                 key={movie.id}
-                id={movie.id} 
                 title={movie.title}
                 releaseDate={movie.release_date}
                 rating={movie.vote_average}
