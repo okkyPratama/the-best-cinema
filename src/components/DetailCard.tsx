@@ -1,32 +1,37 @@
 import React, { useCallback, useEffect, useState } from "react";
 
 interface DetailCardProps {
-  movieId: number;
-  onClose: () => void;
-  onLoaded: () => void;
-}
+    movieId: number;
+    onClose: () => void;
+    onLoaded: () => void;
+    guestSessionId: string | null;
+    apiToken: string;
+  }
 
-interface MovieDetail {
-  title: string;
-  poster_path: string;
-  vote_average: number;
-  genres: { name: string }[];
-  tagline: string;
-  overview: string;
-  release_date: string;
-  runtime: number;
-}
+  interface MovieDetail {
+    title: string;
+    poster_path: string;
+    vote_average: number;
+    genres: { name: string }[];
+    tagline: string;
+    overview: string;
+    release_date: string;
+    runtime: number;
+  }
 
-export const DetailCard: React.FC<DetailCardProps> = ({ movieId, onClose, onLoaded }) => {
+export const DetailCard: React.FC<DetailCardProps> = ({movieId, onClose, onLoaded, guestSessionId,apiToken}) => {
   const [movieDetail, setMovieDetail] = useState<MovieDetail | null>(null);
   const [userRating, setUserRating] = useState<number>(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ratingSuccess, setRatingSuccess] = useState(false);
+
+  const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
 
   useEffect(() => {
     const fetchMovieDetail = async () => {
       const url = `https://api.themoviedb.org/3/movie/${movieId}`;
-      const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
 
       try {
         const response = await fetch(url, {
@@ -52,11 +57,41 @@ export const DetailCard: React.FC<DetailCardProps> = ({ movieId, onClose, onLoad
     };
 
     fetchMovieDetail();
-  }, [movieId, onLoaded]);
+  }, [movieId, onLoaded, apiToken, API_TOKEN]);
 
-  const handleSubmit = () => {
-    console.log(`Submitting rating ${userRating} for ${movieDetail?.title}`);
-    onClose();
+  const handleSubmit = async () => {
+    if (!guestSessionId) {
+      setError('No guest session available. Unable to submit rating.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const url = `https://api.themoviedb.org/3/movie/${movieId}/rating?guest_session_id=${guestSessionId}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8',
+          'Authorization': `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({ value: userRating })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit rating');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setRatingSuccess(true);
+      } else {
+        throw new Error('Rating submission was not successful');
+      }
+    } catch (err) {
+      setError('Error submitting rating: ' + err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOutsideClick = useCallback(
@@ -101,19 +136,23 @@ export const DetailCard: React.FC<DetailCardProps> = ({ movieId, onClose, onLoad
                 <div className="flex items-center w-full">
                   <input
                     type="range"
-                    min="1"
+                    min="0.5"
                     max="10"
+                    step="0.5"
                     value={userRating}
                     onChange={(e) => setUserRating(Number(e.target.value))}
                     className="flex-grow mr-4"
                   />
                   <button
                     onClick={handleSubmit}
-                    className="bg-blue-950 hover:bg-blue-900 text-white font-bold py-2 px-5 rounded-2xl"
+                    disabled={isSubmitting || ratingSuccess}
+                    className="bg-blue-950 hover:bg-blue-900 text-white font-bold py-2 px-5 rounded-2xl disabled:opacity-50"
                   >
-                    Submit
+                    {isSubmitting ? 'Submitting...' : ratingSuccess ? 'Submitted' : 'Submit'}
                   </button>
                 </div>
+                {ratingSuccess && <p className="text-green-600 mt-2">Rating submitted successfully!</p>}
+                {error && <p className="text-red-600 mt-2">{error}</p>}
               </div>
             </div>
           </div>

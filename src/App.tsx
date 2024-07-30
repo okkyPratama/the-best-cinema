@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { Card } from "./components/Card";
 import { Navbar } from "./components/Navbar";
+import { DetailCard } from "./components/DetailCard";
 
 interface Movie {
   id: number;
@@ -19,6 +20,33 @@ function App() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  
+  const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
+  useEffect(() => {
+    fetchMovies();
+    createGuestSession();
+  }, []);
+
+  const createGuestSession = async () => {
+    try {
+      const response = await fetch('https://api.themoviedb.org/3/authentication/guest_session/new', {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          Authorization: `Bearer ${API_TOKEN}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create guest session');
+      }
+      const data = await response.json();
+      setGuestSessionId(data.guest_session_id);
+    } catch (err) {
+      console.error('Error creating guest session:', err);
+    }
+  };
 
   const fetchMovies = async (query: string = "") => {
     if (query) {
@@ -27,7 +55,6 @@ function App() {
       setLoading(true);
     }
     
-    const API_TOKEN = import.meta.env.VITE_READ_ACCESS_TOKEN;
 
     if (!API_TOKEN) {
       setError('API token is not configured');
@@ -64,9 +91,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchMovies();
-  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -76,6 +100,10 @@ function App() {
   const handleHomeClick = () => {
     setSearchQuery("");
     fetchMovies();
+  };
+
+  const handleMovieSelect = (movie: Movie) => {
+    setSelectedMovie(movie);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -94,19 +122,29 @@ function App() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
-            {movies.map((movie) => (
+             {movies.map((movie) => (
               <Card
-                id={movie.id} 
                 key={movie.id}
+                id={movie.id} 
                 title={movie.title}
                 releaseDate={movie.release_date}
                 rating={movie.vote_average}
                 imageUrl={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                onSelect={() => handleMovieSelect(movie)}
               />
             ))}
           </div>
         )}
       </div>
+      {selectedMovie && (
+        <DetailCard
+          movieId={selectedMovie.id}
+          onClose={() => setSelectedMovie(null)}
+          onLoaded={() => {}}
+          guestSessionId={guestSessionId}
+          apiToken={API_TOKEN}
+        />
+      )}
     </>
   );
 }
